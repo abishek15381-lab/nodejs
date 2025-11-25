@@ -10,6 +10,13 @@ app.use((req,res,next) =>{
     next();
 });
 
+//validation middleware , validate the post request has the name 
+function validateName(req,res,next) {
+    if(!req.body.name){
+       return res.status(400).json({message:"name is required"})
+    }
+    next();
+}
 let users =[
     {
         "id":1,
@@ -27,7 +34,7 @@ app.get("/users",(req,res)=>{
 })
 
 //Post ROUTE -> create user
-app.post("/users" , (req,res) => {
+app.post("/users" , validateName , (req,res) => {
     const newUser = {
         id: users.length+1 ,
         name: req.body.name
@@ -44,7 +51,7 @@ app.put("/users/:id",(req,res) => {
     const user = users.find(u => u.id === id);
 
     if(!user){
-        res.status(404).json({message:"user not found"})
+       return res.status(404).json({message:"user not found"})
     }
     user.name = req.body.name;
     res.json(user)
