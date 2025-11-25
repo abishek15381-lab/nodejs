@@ -4,6 +4,12 @@ const app = express();
 app.use(express.json());
 
 
+//logging middleware that logs the users requests
+app.use((req,res,next) =>{
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 let users =[
     {
         "id":1,
