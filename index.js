@@ -47,7 +47,7 @@ app.post("/users" , validateName , (req,res) => {
 
 //Put ROUTE -> update user
 app.put("/users/:id",(req,res) => {
-    const id = parseInt(req.params.id);
+    //const id = parseInt(req.params.id);
     const user = users.find(u => u.id === id);
 
     if(!user){
@@ -63,6 +63,14 @@ app.delete("/users/:id",(req,res) => {
      users = users.filter(u => u.id !== id);
     res.json({message:"user deleted"});
 });
+
+//error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.message)
+    res.status(500).json({message:"something went wrong"})
+})
+
+
 
 //server    
 app.listen(3000 , ()=>{
