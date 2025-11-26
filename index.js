@@ -3,6 +3,14 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+//connect with mongo db cloud 
+const mongoose = require("mongoose");
+
+mongoose.connect("mongodb+srv://abishek:1234abi@cluster0.8l8eojj.mongodb.net/?appName=Cluster0")
+  .then(() => console.log(" MongoDB connected"))
+  .catch(err => console.log(" MongoDB error:", err));
+
+
 
 //logging middleware that logs the users requests
 app.use((req,res,next) =>{
@@ -17,37 +25,47 @@ function validateName(req,res,next) {
     }
     next();
 }
-let users =[
-    {
-        "id":1,
-        "name":"abi"
-    },
-    {
-        "id":2,
-        "name":"shek"
-    }
-]
+// let users =[
+//     {
+//         "id":1,
+//         "name":"abi"
+//     },
+//     {
+//         "id":2,
+//         "name":"shek"
+//     }
+// ]
+
+const User = require("./model/User");
 
 //GET ROUTE -> get user
-app.get("/users",(req,res)=>{
+app.get("/users",async (req,res)=>{
+    //mongo 
+    const users = await User.find();
     res.json(users);
 })
 
 //Post ROUTE -> create user
-app.post("/users" , validateName , (req,res) => {
-    const newUser = {
-        id: users.length+1 ,
-        name: req.body.name
-    };
+app.post("/users" , validateName , async (req,res) => {
+    // const newUser = {
+    //     id: users.length+1 ,
+    //     name: req.body.name
+    // };
 
-    users.push(newUser);
-    res.json(newUser);
+    //mongo dd
+    const user = new User({
+        name:req.body.name
+    });
+    await user.save(user)
+
+    // users.push(newUser);
+    res.json(user);
 
 });
 
 //Put ROUTE -> update user
 app.put("/users/:id",(req,res) => {
-    //const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id);
     const user = users.find(u => u.id === id);
 
     if(!user){
