@@ -1,7 +1,12 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
+const Jwt = require("jsonwebtoken")
 
 const app = express();
-app.use(express.json());
+
+app.use(express.json()); 
+
+//--> to read json bodies from clients
 
 //connect with mongo db cloud 
 const mongoose = require("mongoose");
@@ -25,6 +30,68 @@ function validateName(req,res,next) {
     }
     next();
 }
+
+//AUTH Middleware for protect routes
+function auth(req,res,next){
+    // take token ->  validate -> save payload in req object
+    const token  = req.headers.authorization?.split(" ")[1];
+
+    console.log(token)
+
+    if(!token){
+        return res.status(401).json({message:"require token "});
+    }
+
+    try {
+        const decoded = Jwt.verify(token,"secret");
+        req.user = decoded;
+        next();
+    } catch (err) {
+        res.status(401).json({message:"invalid token"});
+    }
+}
+// function auth(req, res, next) {
+//   const token = req.headers.authorization?.split(" ")[1];
+
+//   if (!token) {
+//     return res.status(401).json({ message: "No token provided" });
+//   }
+
+//   try {
+//     const decoded = Jwt.verify(token, "secret");
+//     req.user = decoded;
+//     next();
+//   } catch (err) {
+//     return res.status(401).json({ message: "Invalid token" });
+//   }
+// }
+
+// function auth(req, res, next) {
+//   const header = req.headers.authorization;
+//   console.log("HEADER:", header);
+
+//   const token = header?.split(" ")[1];
+//   console.log("TOKEN:", token);
+
+//   if (!token) {
+//     return res.status(401).json({ message: "No token provided" });
+//   }
+
+//   try {
+//     const decoded = jwt.verify(token, "SECRET123");
+//     console.log("DECODED:", decoded);
+//     req.user = decoded;
+//     next();
+//   } catch (err) {
+//     console.log("JWT ERROR:", err.message);
+//     return res.status(401).json({ message: "Invalid token" });
+//   }
+// }
+
+
+
+
+
 // let users =[
 //     {
 //         "id":1,
@@ -37,6 +104,66 @@ function validateName(req,res,next) {
 // ]
 
 const User = require("./model/User");
+
+            //------------AUTHENTICATION----------------//
+
+//SIGNUP ROUTE
+app.post("/signup", async(req,res) =>{
+    const {name , email , password} =req.body;
+
+    const existingUser = await User.findOne({email});
+
+    if (existingUser){
+        return res.status(400).json({message:"email already exists"})
+    }
+
+    //hash pass
+    const hashedPassword = await bcrypt.hash(password,10);
+
+    const user = new User({
+        name,
+        email,
+        password:hashedPassword
+    });
+
+    await user.save();
+
+    res.json({message:"user created"});
+});
+
+//LOGIN ROUTE
+app.post("/login", async(req,res) =>{
+    console.log("Body received:", req.body);
+
+
+    const {email , password} = req.body ;
+    
+    //check user exists
+    const user = await User.findOne({email});
+    if(!user){
+       return res.status(400).json({message:"invalid username or password "});
+    }
+
+    //checks password matches
+    const isMatch = await bcrypt.compare(password , user.password);
+    if(!isMatch){
+        return res.status(400).json({message:"invalid username or password"});
+    }
+
+    //generate token
+    const token = await Jwt.sign({id:user.id},"secret" , {expiresIn: "1h"});
+
+    res.json({message:"login successful",token});
+});
+
+//PROFILE ------ PROTECTED ROUTE 
+app.get("/profile",auth,async (req,res) => {
+    const user = await User.findById(req.user.id).select("-password");
+    res.json(user);
+});
+
+
+//---------------END----------------------//
 
 //GET ROUTE -> get user
 app.get("/users",async (req,res)=>{
